@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "lisp.h"
+#include "secd.h"
 
 #define LISP_HEAP_SIZE (1024 * 1024)
 
@@ -15,6 +16,8 @@ struct lisp_heap
 struct lisp_heap LISP_HEAPS[2];
 unsigned int LISP_CURRENT_HEAP = 0;
 any LISP_SYMBOL_TABLE = LISP_NIL;
+
+struct secd THE_SECD;
 
 
 static inline void* lisp_heap_here(struct lisp_heap* heap)
@@ -80,6 +83,10 @@ void lisp_mark_object(any object)
 void lisp_mark()
 {
   lisp_mark_object(LISP_SYMBOL_TABLE);
+  lisp_mark_object(THE_SECD.s);
+  lisp_mark_object(THE_SECD.e);
+  lisp_mark_object(THE_SECD.c);
+  lisp_mark_object(THE_SECD.d);
 }
 
 void lisp_sweep()
@@ -191,6 +198,10 @@ void lisp_init()
 {
   LISP_HEAPS[0].alloc = 0;
   LISP_HEAPS[1].alloc = 0;
+  THE_SECD.s = LISP_NIL;
+  THE_SECD.e = LISP_NIL;
+  THE_SECD.c = LISP_NIL;
+  THE_SECD.d = LISP_NIL;
 }
 
 void lisp_terminate()

@@ -256,14 +256,14 @@ void secd_run(struct secd* secd)
 }
 
 
+extern struct secd THE_SECD;
+
 any run_expr(any expr)
 {
-  struct secd secd;
-
-  secd.s = LISP_NIL;
-  secd.e = LISP_NIL;
-  secd.c = expr;
-  secd.d = LISP_NIL;
-  secd_run(&secd);
-  return secd_pop(&secd);
+  THE_SECD.s = LISP_NIL;
+  THE_SECD.e = LISP_NIL;
+  THE_SECD.c = expr;
+  THE_SECD.d = LISP_NIL;
+  secd_run(&THE_SECD);
+  return secd_pop(&THE_SECD);
 }
