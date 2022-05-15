@@ -1,17 +1,23 @@
+#include <assert.h>
+
 #include "secd.h"
+
 
 enum instruction_type
   {
     IT_NIL,
     IT_LDC,
     IT_LD,
+    IT_ST,
     IT_SEL,
     IT_JOIN,
     IT_LDF,
     IT_AP,
     IT_RET,
-    IT_DUM,
-    IT_RAP
+    IT_POP,
+    IT_LDS,
+    IT_STS,
+    IT_BLT
   };
 
 static inline any secd_c(struct secd* secd)
@@ -80,6 +86,25 @@ any secd_lookup(struct secd* secd, any pos)
   return lisp_car(p);
 }
 
+void secd_setq(struct secd* secd, any pos, any val)
+{
+  int x;
+  int y;
+  int i;
+  any p;
+
+  x = intval(lisp_car(pos));
+  y = intval(lisp_cdr(pos));
+  p = secd->e;
+  for (i = 0; i < x; i++)
+    p = lisp_cdr(p);
+  p = lisp_car(p);
+  for (i = 0; i < y; i++)
+    p = lisp_cdr(p);
+  lisp_rplaca(p, val);
+}
+
+
 void secd_ap(struct secd* secd)
 {
   any func;
@@ -107,12 +132,45 @@ void secd_ret(struct secd* secd)
   secd_push(secd, v);
 }
 
+void secd_blt(struct secd* secd)
+{
+  int builtin;
+  int args;
+  any x;
+  any y;
+  any z;
+
+  builtin = intval(secd_c(secd));
+  args = intval(secd_c(secd));
+
+  switch (builtin)
+    {
+    case 0: /* CONS */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      z = lisp_cons(x, y);
+      secd_push(secd, z);
+      break;
+    case 1: /* EQ */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, (x == y) ? intref(1) : LISP_NIL); /* TODO: Return T */
+      break;
+    default:
+      /* TODO: Error */
+      break;
+    }
+}
+
 void secd_run(struct secd* secd)
 {
   any instruction;
   any x;
   any y;
   any z;
+  int i;
 
   while (1)
     {
@@ -128,6 +186,9 @@ void secd_run(struct secd* secd)
         case IT_LD:
           secd_push(secd, secd_lookup(secd, secd_c(secd)));
           break;
+        case IT_ST:
+          secd_setq(secd, secd_c(secd), secd_pop(secd));
+          break;
         case IT_SEL:
           x = secd_c(secd);
           y = secd_c(secd);
@@ -139,7 +200,7 @@ void secd_run(struct secd* secd)
             secd->c = x;
           break;
         case IT_JOIN:
-          secd->c = secd_popd(secd);
+          secd->c = secd_c(secd);
           break;
         case IT_LDF:
           secd_push(secd, lisp_cons(secd_c(secd), secd->e));
@@ -150,11 +211,26 @@ void secd_run(struct secd* secd)
         case IT_RET:
           secd_ret(secd);
           break;
-        case IT_DUM:
-          secd_pushd(secd, LISP_NIL);
+        case IT_POP:
+          secd_pop(secd);
           break;
-        case IT_RAP:
-          /* TODO */
+        case IT_LDS:
+          i = intval(secd_c(secd));
+          x = secd_pop(secd);
+          if (is_ref(x))
+            x = *lisp_obj_at(deref(x), i);
+          secd_push(secd, x);
+          break;
+        case IT_STS:
+          i = intval(secd_c(secd));
+          y = secd_pop(secd);
+          x = secd_pop(secd);
+          if (is_ref(x))
+            *lisp_obj_at(deref(x), i) = y;
+          secd_push(secd, x);
+          break;
+        case IT_BLT:
+          secd_blt(secd);
           break;
         }
     }

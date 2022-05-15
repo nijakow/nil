@@ -5,26 +5,22 @@
 (defun xc/write-nil (tail) (cons 0 tail))
 (defun xc/write-ldc (e tail) (cons 1 (cons e tail)))
 (defun xc/write-ld (x tail) (cons 2 (cons x tail)))
-(defun xc/write-sel (tail tail1 tail2) (cons 3 (cons tail1 (cons tail2 tail))))
-(defun xc/write-join (tail) (cons 4 (cons tail nil)))
-(defun xc/write-ldf (f tail) (cons 5 (cons f tail)))
-(defun xc/write-ap (a tail) (cons 6 (cons a tail)))
-(defun xc/write-ret () (cons 7 nil))
-(defun xc/write-dum (tail) (cons 8 tail))
-(defun xc/write-rap (tail) (cons 9 tail))
-(defun xc/write-pop (tail) (cons 10 tail))
-(defun xc/write-st (x tail) (cons 12 (cons x tail)))
-(defun xc/write-lds (i tail) (cons 14 (cons i tail)))
-(defun xc/write-sts (i tail) (cons 15 (cons i tail)))
+(defun xc/write-st (x tail) (cons 3 (cons x tail)))
+(defun xc/write-sel (tail tail1 tail2) (cons 4 (cons tail1 (cons tail2 tail))))
+(defun xc/write-join (tail) (cons 5 (cons tail nil)))
+(defun xc/write-ldf (f tail) (cons 6 (cons f tail)))
+(defun xc/write-ap (a tail) (cons 7 (cons a tail)))
+(defun xc/write-ret () (cons 8 nil))
+(defun xc/write-pop (tail) (cons 9 tail))
+(defun xc/write-lds (i tail) (cons 10 (cons i tail)))
+(defun xc/write-sts (i tail) (cons 11 (cons i tail)))
 (defun xc/write-ldg (sym tail) (xc/write-ldc sym
                                              (xc/write-lds *xc/symbol/val* tail)))
-(defun xc/write-stg (sym tail) (xc/write-ldc sym
-                                             (xc/write-sts *xc/symbol/val* tail)))
+(defun xc/write-stg (tail) (xc/write-sts *xc/symbol/val* tail))
 (defun xc/write-ldgf (sym tail) (xc/write-ldc sym
                                               (xc/write-lds *xc/symbol/fval* tail)))
-(defun xc/write-stgf (sym tail) (xc/write-ldc sym
-                                              (xc/write-sts *xc/symbol/fval* tail)))
-(defun xc/write-blt (num args tail) (cons 16 (cons num (cons args tail))))
+(defun xc/write-stgf (tail) (xc/write-sts *xc/symbol/fval* tail))
+(defun xc/write-blt (num args tail) (cons 12 (cons num (cons args tail))))
 
 (defun xc/find (e lst i)
   (cond ((null lst) nil)
@@ -78,12 +74,15 @@
                     (xc/write-ldgf (cadr expr) tail)
                   (xc/compile (cadr expr) env tail)))
                ((eq (car expr) 'setq)
-                (xc/compile (caddr expr)
-                            env
-                            (let ((v (xc/lookup (cadr expr) env 0)))
-                              (if v
-                                  (xc/write-st v tail)
-                                (xc/write-stg (cadr expr) tail)))))
+                (let ((v (xc/lookup (cadr expr) env 0)))
+                  (if v
+                      (xc/compile (caddr expr)
+                                  env
+                                  (xc/write-st v tail))
+                    (xc/write-ldc (cadr expr)
+                                  (xc/compile (caddr expr)
+                                              env
+                                              (xc/write-stg tail))))))
                ((eq (car expr) 'progn)
                 (let ((rev (reverse (cdr expr))))
                   (setq tail (xc/compile (car rev) env tail))
@@ -110,9 +109,10 @@
                ((eq (car expr) 'lambda)
                 (xc/write-ldf (xc/compile (cons 'progn (cddr expr)) (cons (cadr expr) env) (xc/write-ret)) tail))
                ((eq (car expr) 'defun)
-                (xc/compile (cons 'lambda (cddr expr))
-                            env
-                            (xc/write-stgf (cadr expr) tail)))
+                (xc/write-ldc (cadr expr)
+                              (xc/compile (cons 'lambda (cddr expr))
+                                          env
+                                          (xc/write-stgf tail))))
                ((eq (car expr) 'let)
                 (xc/compile (cons (cons 'lambda (cons (mapcar #'car (cadr expr)) (cddr expr)))
                                   (mapcar (lambda (e) (cons 'progn (cdr e))) (cadr expr)))

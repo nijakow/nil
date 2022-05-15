@@ -19,11 +19,9 @@
          (sts 1)))
 
   (defun cons (a d)
-    (asm (blt 0 0)
-         (ld 0 0)
-         (sts 0)
+    (asm (ld 0 0)
          (ld 0 1)
-         (sts 1)))
+         (blt 0 2)))
 
   (defun eq (a b)
     (asm (ld 0 0)

@@ -39,7 +39,7 @@ static inline int intval(any v)
   return (int) (v >> 1);
 }
 
-static inline int intref(int v)
+static inline any intref(int v)
 {
   return (((any) v) << 1) | 0x01;
 }
