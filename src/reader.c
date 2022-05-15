@@ -4,9 +4,12 @@
 
 #include "reader.h"
 
+#define READER_MAX_REFS 1024
+
 struct reader
 {
   char c;
+  any refs[READER_MAX_REFS];
 };
 
 char here(struct reader* reader)
@@ -19,7 +22,7 @@ void forward(struct reader* reader)
   reader->c = getchar();
 };
 
-any lisp_reader_read_expr(struct reader*);
+any lisp_reader_read_expr(struct reader*, any*);
 
 void skip_whitespace(struct reader* reader)
 {
@@ -27,9 +30,12 @@ void skip_whitespace(struct reader* reader)
     forward(reader);
 }
 
-any lisp_reader_read_number(struct reader* reader)
+int lisp_reader_parse_number(struct reader* reader, int* n)
 {
   int v;
+
+  if (!isdigit(here(reader)))
+    return 0;
 
   v = 0;
   while (isdigit(here(reader)))
@@ -37,11 +43,39 @@ any lisp_reader_read_number(struct reader* reader)
       v = (v * 10) + (here(reader) - '0');
       forward(reader);
     }
+  *n = v;
+  return 1;
+}
+
+any lisp_reader_read_number(struct reader* reader)
+{
+  int v;
+
+  assert(lisp_reader_parse_number(reader, &v));
   return intref(v);
 }
 
-any lisp_reader_read_list(struct reader* reader)
+any lisp_reader_read_reference(struct reader* reader)
 {
+  int n;
+
+  assert(lisp_reader_parse_number(reader, &n));
+  if (here(reader) == '#')
+    {
+      forward(reader);
+      return reader->refs[n];
+    }
+  else
+    {
+      assert(here(reader) == '=');
+      forward(reader);
+      return lisp_reader_read_expr(reader, &reader->refs[n]);
+    }
+}
+
+any lisp_reader_read_list(struct reader* reader, any* loc)
+{
+  any p;
   any v;
 
   skip_whitespace(reader);
@@ -52,14 +86,18 @@ any lisp_reader_read_list(struct reader* reader)
       return LISP_NIL;
     case '.':
       forward(reader);
-      v = lisp_reader_read_expr(reader);
+      v = lisp_reader_read_expr(reader, NULL);
       skip_whitespace(reader);
       assert(here(reader) == ')');
       forward(reader);
       return v;
     default:
-      v = lisp_reader_read_expr(reader);
-      return lisp_cons(v, lisp_reader_read_list(reader));
+      p = lisp_cons(LISP_NIL, LISP_NIL);
+      if (loc != NULL)
+        *loc = p;
+      lisp_rplaca(p, lisp_reader_read_expr(reader, NULL));
+      lisp_rplacd(p, lisp_reader_read_list(reader, NULL));
+      return p;
     }
 }
 
@@ -83,7 +121,7 @@ any lisp_reader_read_symbol(struct reader* reader)
   return lisp_getsym(buffer);
 }
 
-any lisp_reader_read_expr(struct reader* reader)
+any lisp_reader_read_expr(struct reader* reader, any* loc)
 {
   skip_whitespace(reader);
   if (isdigit(here(reader)))
@@ -92,7 +130,10 @@ any lisp_reader_read_expr(struct reader* reader)
     {
     case '(':
       forward(reader);
-      return lisp_reader_read_list(reader);
+      return lisp_reader_read_list(reader, loc);
+    case '#':
+      forward(reader);
+      return lisp_reader_read_reference(reader);
     default:
       return lisp_reader_read_symbol(reader);
     }
@@ -103,5 +144,5 @@ any lisp_reader_read(char* ptr)
   struct reader reader;
 
   forward(&reader);
-  return lisp_reader_read_expr(&reader);
+  return lisp_reader_read_expr(&reader, NULL);
 }
