@@ -55,6 +55,7 @@ any lisp_reader_read_list(struct reader* reader)
       v = lisp_reader_read_expr(reader);
       skip_whitespace(reader);
       assert(here(reader) == ')');
+      forward(reader);
       return v;
     default:
       v = lisp_reader_read_expr(reader);
