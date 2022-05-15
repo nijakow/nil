@@ -48,8 +48,6 @@
             ((eq opcode 'ldf) (xc/write-ldf '? tail))
             ((eq opcode 'ap) (xc/write-ap (car args) tail))
             ((eq opcode 'ret) (xc/write-ret))
-            ((eq opcode 'dum) (xc/write-dum tail))
-            ((eq opcode 'rap) (xc/write-rap tail))
             ((eq opcode 'pop) (xc/write-pop tail))
             ((eq opcode 'st) (xc/write-st (car args) tail))
             ((eq opcode 'lds) (xc/write-lds (car args) tail))
