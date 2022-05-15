@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 
 #include "secd.h"
 
@@ -25,7 +26,7 @@ static inline any secd_c(struct secd* secd)
   any v;
   v = secd->c;
   secd->c = lisp_cdr(v);
-  return v;
+  return lisp_car(v);
 }
 
 static inline void secd_push(struct secd* secd, any v)
@@ -178,18 +179,23 @@ void secd_run(struct secd* secd)
       switch (intval(instruction))
         {
         case IT_NIL:
+          printf("NIL\n");
           secd_push(secd, LISP_NIL);
           break;
         case IT_LDC:
+          printf("LDC\n");
           secd_push(secd, secd_c(secd));
           break;
         case IT_LD:
+          printf("LD\n");
           secd_push(secd, secd_lookup(secd, secd_c(secd)));
           break;
         case IT_ST:
+          printf("ST\n");
           secd_setq(secd, secd_c(secd), secd_pop(secd));
           break;
         case IT_SEL:
+          printf("SEL\n");
           x = secd_c(secd);
           y = secd_c(secd);
           z = secd_pop(secd);
@@ -200,21 +206,29 @@ void secd_run(struct secd* secd)
             secd->c = x;
           break;
         case IT_JOIN:
+          printf("JOIN\n");
           secd->c = secd_c(secd);
           break;
         case IT_LDF:
+          printf("LDF\n");
           secd_push(secd, lisp_cons(secd_c(secd), secd->e));
           break;
         case IT_AP:
+          printf("AP\n");
           secd_ap(secd);
           break;
         case IT_RET:
+          printf("RET\n");
+          if (secd->d == LISP_NIL)
+            return;
           secd_ret(secd);
           break;
         case IT_POP:
+          printf("POP\n");
           secd_pop(secd);
           break;
         case IT_LDS:
+          printf("LDS\n");
           i = intval(secd_c(secd));
           x = secd_pop(secd);
           if (is_ref(x))
@@ -222,6 +236,7 @@ void secd_run(struct secd* secd)
           secd_push(secd, x);
           break;
         case IT_STS:
+          printf("STS\n");
           i = intval(secd_c(secd));
           y = secd_pop(secd);
           x = secd_pop(secd);
@@ -230,9 +245,25 @@ void secd_run(struct secd* secd)
           secd_push(secd, x);
           break;
         case IT_BLT:
+          printf("BLT\n");
           secd_blt(secd);
+          break;
+        default:
+          printf("???\n");
           break;
         }
     }
 }
 
+
+any run_expr(any expr)
+{
+  struct secd secd;
+
+  secd.s = LISP_NIL;
+  secd.e = LISP_NIL;
+  secd.c = expr;
+  secd.d = LISP_NIL;
+  secd_run(&secd);
+  return secd_pop(&secd);
+}

@@ -11,6 +11,7 @@ struct secd
   any d;
 };
 
+any run_expr(any);
 void secd_run(struct secd*);
 
 #endif

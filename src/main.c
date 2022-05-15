@@ -4,11 +4,15 @@
 
 #include "lisp.h"
 #include "reader.h"
+#include "secd.h"
 
 int main(int argc, char *argv[])
 {
+  any v;
+
   lisp_init();
-  lisp_reader_read(NULL);
+  v = lisp_reader_read(NULL);
+  run_expr(v);
   lisp_terminate();
   return 0;
 }
