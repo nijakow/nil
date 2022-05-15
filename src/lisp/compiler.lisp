@@ -14,21 +14,17 @@
 (defun xc/write-rap (tail) (cons 9 tail))
 (defun xc/write-pop (tail) (cons 10 tail))
 (defun xc/write-st (x tail) (cons 12 (cons x tail)))
-(defun xc/write-lds (tail) (cons 14 tail))
-(defun xc/write-sts (tail) (cons 15 tail))
+(defun xc/write-lds (i tail) (cons 14 (cons i tail)))
+(defun xc/write-sts (i tail) (cons 15 (cons i tail)))
 (defun xc/write-ldg (sym tail) (xc/write-ldc sym
-                                             (xc/write-ldc *xc/symbol/val*
-                                                           (xc/write-lds tail))))
+                                             (xc/write-lds *xc/symbol/val* tail)))
 (defun xc/write-stg (sym tail) (xc/write-ldc sym
-                                             (xc/write-ldc *xc/symbol/val*
-                                                           (xc/write-sts tail))))
+                                             (xc/write-sts *xc/symbol/val* tail)))
 (defun xc/write-ldgf (sym tail) (xc/write-ldc sym
-                                              (xc/write-ldc *xc/symbol/fval*
-                                                            (xc/write-lds tail))))
+                                              (xc/write-lds *xc/symbol/fval* tail)))
 (defun xc/write-stgf (sym tail) (xc/write-ldc sym
-                                              (xc/write-ldc *xc/symbol/fval*
-                                                            (xc/write-sts tail))))
-(defun xc/write-blt (num tail) (cons 16 (cons num tail)))
+                                              (xc/write-sts *xc/symbol/fval* tail)))
+(defun xc/write-blt (num args tail) (cons 16 (cons num (cons args tail))))
 
 (defun xc/find (e lst i)
   (cond ((null lst) nil)
@@ -60,9 +56,9 @@
             ((eq opcode 'rap) (xc/write-rap tail))
             ((eq opcode 'pop) (xc/write-pop tail))
             ((eq opcode 'st) (xc/write-st (car args) tail))
-            ((eq opcode 'lds) (xc/write-lds tail))
-            ((eq opcode 'sts) (xc/write-sts tail))
-            ((eq opcode 'blt) (xc/write-blt (car args) tail))
+            ((eq opcode 'lds) (xc/write-lds (car args) tail))
+            ((eq opcode 'sts) (xc/write-sts (car args) tail))
+            ((eq opcode 'blt) (xc/write-blt (car args) (cadr args) tail))
             ((eq opcode 'lisp) (xc/compile (cons 'progn args) env tail))
             (t (error "Unknown opcode!"))))))
 
