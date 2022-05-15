@@ -1,0 +1,135 @@
+
+(defparameter *xc/symbol/val* 2)
+(defparameter *xc/symbol/fval* 3)
+
+(defun xc/write-nil (tail) (cons 0 tail))
+(defun xc/write-ldc (e tail) (cons 1 (cons e tail)))
+(defun xc/write-ld (x tail) (cons 2 (cons x tail)))
+(defun xc/write-sel (tail tail1 tail2) (cons 3 (cons tail1 (cons tail2 tail))))
+(defun xc/write-join (tail) (cons 4 (cons tail nil)))
+(defun xc/write-ldf (f tail) (cons 5 (cons f tail)))
+(defun xc/write-ap (a tail) (cons 6 (cons a tail)))
+(defun xc/write-ret () (cons 7 nil))
+(defun xc/write-dum (tail) (cons 8 tail))
+(defun xc/write-rap (tail) (cons 9 tail))
+(defun xc/write-pop (tail) (cons 10 tail))
+(defun xc/write-st (x tail) (cons 12 (cons x tail)))
+(defun xc/write-lds (tail) (cons 14 tail))
+(defun xc/write-sts (tail) (cons 15 tail))
+(defun xc/write-ldg (sym tail) (xc/write-ldc sym
+                                             (xc/write-ldc *xc/symbol/val*
+                                                           (xc/write-lds tail))))
+(defun xc/write-stg (sym tail) (xc/write-ldc sym
+                                             (xc/write-ldc *xc/symbol/val*
+                                                           (xc/write-sts tail))))
+(defun xc/write-ldgf (sym tail) (xc/write-ldc sym
+                                              (xc/write-ldc *xc/symbol/fval*
+                                                            (xc/write-lds tail))))
+(defun xc/write-stgf (sym tail) (xc/write-ldc sym
+                                              (xc/write-ldc *xc/symbol/fval*
+                                                            (xc/write-sts tail))))
+(defun xc/write-blt (num tail) (cons 16 (cons num tail)))
+
+(defun xc/find (e lst i)
+  (cond ((null lst) nil)
+        ((eq (car lst) e) i)
+        (t (xc/find e (cdr lst) (+ i 1)))))
+
+(defun xc/lookup (expr env depth)
+  (if (null env)
+      nil
+    (let ((v (xc/find expr (car env) 0)))
+      (if v (cons depth v)
+        (xc/lookup expr (cdr env) (+ depth 1))))))
+
+(defun xc/asm (code env tail)
+  (if (null code)
+      tail
+    (let ((opcode (caar code))
+          (args (cdar code)))
+      (setq tail (xc/asm (cdr code) env tail))
+      (cond ((eq opcode 'nil) (xc/write-nil tail))
+            ((eq opcode 'ldc) (xc/write-ldc (car args) tail))
+            ((eq opcode 'ld) (xc/write-ld (cons (car args) (cadr args)) tail))
+            ((eq opcode 'sel) (xc/write-sel tail '? '?))
+            ((eq opcode 'join) (xc/write-join '?))
+            ((eq opcode 'ldf) (xc/write-ldf '? tail))
+            ((eq opcode 'ap) (xc/write-ap (car args) tail))
+            ((eq opcode 'ret) (xc/write-ret))
+            ((eq opcode 'dum) (xc/write-dum tail))
+            ((eq opcode 'rap) (xc/write-rap tail))
+            ((eq opcode 'pop) (xc/write-pop tail))
+            ((eq opcode 'st) (xc/write-st (car args) tail))
+            ((eq opcode 'lds) (xc/write-lds tail))
+            ((eq opcode 'sts) (xc/write-sts tail))
+            ((eq opcode 'blt) (xc/write-blt (car args) tail))
+            ((eq opcode 'lisp) (xc/compile (cons 'progn args) env tail))
+            (t (error "Unknown opcode!"))))))
+
+(defun xc/compile (expr env tail)
+  (cond ((eq expr nil)
+         (xc/write-nil tail))
+        ((symbolp expr)
+         (let ((v (xc/lookup expr env 0)))
+           (if v
+               (xc/write-ld v tail)
+             (xc/write-ldg expr tail))))
+        ((consp expr)
+         (cond ((eq (car expr) 'quote)
+                (xc/write-ldc (cadr expr) tail))
+               ((eq (car expr) 'function)
+                (if (symbolp (cadr expr))
+                    (xc/write-ldgf (cadr expr) tail)
+                  (xc/compile (cadr expr) env tail)))
+               ((eq (car expr) 'setq)
+                (xc/compile (caddr expr)
+                            env
+                            (let ((v (xc/lookup (cadr expr) env 0)))
+                              (if v
+                                  (xc/write-st v tail)
+                                (xc/write-stg (cadr expr) tail)))))
+               ((eq (car expr) 'progn)
+                (let ((rev (reverse (cdr expr))))
+                  (setq tail (xc/compile (car rev) env tail))
+                  (loop for e in (cdr rev) do
+                        (setq tail (xc/compile e env (xc/write-pop tail))))
+                  tail))
+               ((eq (car expr) 'if)
+                (xc/compile (cadr expr)
+                            env
+                            (xc/write-sel tail
+                                          (xc/compile (caddr expr) env (xc/write-join tail))
+                                          (if (cdddr expr)
+                                              (xc/compile (cadddr expr) env (xc/write-join tail))
+                                            (xc/write-nil (xc/write-join tail))))))
+               ((eq (car expr) 'cond)
+                (if (null (cdr expr))
+                    (xc/write-nil tail)
+                  (xc/compile (list 'if
+                                    (caadr expr)
+                                    (cons 'progn (cdadr expr))
+                                    (cons 'cond (cddr expr)))
+                              env
+                              tail)))
+               ((eq (car expr) 'lambda)
+                (xc/write-ldf (xc/compile (cons 'progn (cddr expr)) (cons (cadr expr) env) (xc/write-ret)) tail))
+               ((eq (car expr) 'defun)
+                (xc/compile (cons 'lambda (cddr expr))
+                            env
+                            (xc/write-stgf (cadr expr) tail)))
+               ((eq (car expr) 'let)
+                (xc/compile (cons (cons 'lambda (cons (mapcar #'car (cadr expr)) (cddr expr)))
+                                  (mapcar (lambda (e) (cons 'progn (cdr e))) (cadr expr)))
+                            env
+                            tail))
+               ((eq (car expr) 'asm)
+                (xc/asm (cdr expr) env tail))
+               (t (setq tail (xc/write-ap (length (cdr expr)) tail))
+                  (loop for e in (reverse (cdr expr)) do
+                        (setq tail (xc/compile e env tail)))
+                  (xc/compile (list 'function (car expr)) env tail))))
+        (t (xc/write-ldc expr tail))))
+
+(defun comp (expr)
+  (xc/compile expr '() (xc/write-ret)))
+
