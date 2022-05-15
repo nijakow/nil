@@ -1,21 +1,22 @@
 #include <assert.h>
 #include <ctype.h>
+#include <stdio.h>
 
 #include "reader.h"
 
 struct reader
 {
-  char* ptr;
+  char c;
 };
 
 char here(struct reader* reader)
 {
-  return *(reader->ptr);
+  return reader->c;
 }
 
 void forward(struct reader* reader)
 {
-  reader->ptr++;
+  reader->c = getchar();
 };
 
 any lisp_reader_read_expr(struct reader*);
@@ -100,6 +101,6 @@ any lisp_reader_read(char* ptr)
 {
   struct reader reader;
 
-  reader.ptr = ptr;
+  forward(&reader);
   return lisp_reader_read_expr(&reader);
 }

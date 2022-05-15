@@ -14,6 +14,8 @@ struct lisp_heap
 
 struct lisp_heap LISP_HEAPS[2];
 unsigned int LISP_CURRENT_HEAP = 0;
+any LISP_SYMBOL_TABLE = LISP_NIL;
+
 
 static inline void* lisp_heap_here(struct lisp_heap* heap)
 {
@@ -72,7 +74,7 @@ void lisp_mark_object(any object)
 
 void lisp_mark()
 {
-  /* TODO: Mark roots */
+  lisp_mark_object(LISP_SYMBOL_TABLE);
 }
 
 void lisp_sweep()
