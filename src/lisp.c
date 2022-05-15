@@ -27,25 +27,30 @@ static inline void* lisp_heap_alloc_bytes(struct lisp_heap* heap, unsigned long 
   void* ptr;
 
   ptr = lisp_heap_here(heap);
+  if ((size & 0x07) != 0)
+    size = (size & ~((unsigned long) 0x07)) + 0x08;
   heap->alloc += size;
+  printf("Alloc is %lu bytes, before %p, now %p, %lu bytes in use\n",
+         size,
+         ptr,
+         &heap->data[heap->alloc],
+         heap->alloc);
   return ptr;
 }
 
 
 
-any lisp_alloc(enum lisp_type type, unsigned int word_size)
+any lisp_alloc(unsigned int size)
 {
   struct lisp_obj* obj;
 
-  obj = (struct lisp_obj*) lisp_heap_alloc_bytes(&LISP_HEAPS[LISP_CURRENT_HEAP],
-                                                 sizeof(struct lisp_obj*) + word_size * sizeof(any));
+  obj = (struct lisp_obj*) lisp_heap_alloc_bytes(&LISP_HEAPS[LISP_CURRENT_HEAP], size);
 
   if (obj != NULL)
     {
       obj->header.mark = 0;
       obj->header.bytes = 0;
-      obj->header.word_size = word_size;
-      // TODO: Initialize type
+      obj->header.word_size = (size / sizeof(any)) + (((size % sizeof(any)) == 0) ? 0 : 1);
       // TODO: Initialize body
     }
 
@@ -127,16 +132,58 @@ any lisp_cons(any car, any cdr)
 {
   any cell;
 
-  cell = lisp_alloc(TYPE_CONS, 2);
+  cell = lisp_alloc(sizeof(struct lisp_obj) + sizeof(any) * 2);
   lisp_rplaca(cell, car);
   lisp_rplacd(cell, cdr);
 
   return cell;
 }
 
+
+any lisp_getstr(const char* text)
+{
+  any name;
+  size_t len;
+  size_t x;
+
+  len = strlen(text);
+  name = lisp_alloc(sizeof(struct lisp_obj) + (len + 1) * sizeof(char));
+  ((struct lisp_obj*) deref(name))->header.bytes = 1;
+  for (x = 0; x <= len; x++)
+    *lisp_obj_char_at(deref(name), x) = text[x];
+  return name;
+}
+
 any lisp_getsym(const char* text)
 {
-  return LISP_NIL;
+  any sym;
+  any name;
+  unsigned int x;
+
+  for (sym = LISP_SYMBOL_TABLE;
+       sym != LISP_NIL;
+       sym = *lisp_obj_at(deref(sym), 0))
+    {
+      name = *lisp_obj_at(deref(sym), 1);
+      x = 0;
+      while (1)
+        {
+          if (text[x] != *lisp_obj_char_at(deref(name), x))
+            break;
+          else if (text[x] == '\0')
+            return sym;
+          x = x + 1;
+        }
+    }
+  name = lisp_getstr(text);
+  sym = lisp_alloc(sizeof(struct lisp_obj) + 5 * sizeof(any));
+  *lisp_obj_at(deref(sym), 0) = LISP_SYMBOL_TABLE;
+  *lisp_obj_at(deref(sym), 1) = name;
+  *lisp_obj_at(deref(sym), 2) = sym;
+  *lisp_obj_at(deref(sym), 3) = LISP_NIL;
+  *lisp_obj_at(deref(sym), 4) = LISP_NIL;
+  LISP_SYMBOL_TABLE = sym;
+  return sym;
 }
 
 
