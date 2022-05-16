@@ -1,4 +1,4 @@
-EXECUTABLE = ./tales.app
+EXECUTABLE = ./nil.app
 
 SOURCES = $(shell find . -name "*.c")
 HEADERS = $(shell find . -name "*.h")
