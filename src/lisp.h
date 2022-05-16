@@ -32,6 +32,7 @@ static inline char* lisp_obj_char_at(struct lisp_obj* obj, unsigned int index)
 any lisp_alloc(unsigned int);
 void lisp_mark_object(any);
 void lisp_gc();
+void lisp_opt_gc();
 
 any lisp_cons(any, any);
 

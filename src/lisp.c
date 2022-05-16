@@ -46,6 +46,7 @@ static inline void* lisp_heap_alloc_bytes(struct lisp_heap* heap, unsigned long 
 any lisp_alloc(unsigned int size)
 {
   struct lisp_obj* obj;
+  unsigned int bsize;
 
   obj = (struct lisp_obj*) lisp_heap_alloc_bytes(&LISP_HEAPS[LISP_CURRENT_HEAP], size);
 
@@ -53,7 +54,8 @@ any lisp_alloc(unsigned int size)
     {
       obj->header.mark = 0;
       obj->header.bytes = 0;
-      obj->header.word_size = (size / sizeof(any)) + (((size % sizeof(any)) == 0) ? 0 : 1);
+      bsize = size - sizeof(struct lisp_obj);
+      obj->header.word_size = (bsize / sizeof(any)) + (((bsize % sizeof(any)) == 0) ? 0 : 1);
       // TODO: Initialize body
     }
 
@@ -68,13 +70,16 @@ void lisp_mark_object(any object)
   if (!is_ref(object) || object == LISP_NIL)
     return;
   ptr = deref(object);
+  printf("Marking %p\n", ptr);
   if (!ptr->header.mark)
     {
       ptr->header.mark = 0x01;
       if (!ptr->header.bytes)
         {
           for (i = 0; i < ptr->header.word_size; i++)
-            lisp_mark_object(*lisp_obj_at(ptr, i));
+            {
+              lisp_mark_object(*lisp_obj_at(ptr, i));
+            }
         }
     }
   ptr->header.mark = 0x03;
@@ -87,6 +92,21 @@ void lisp_mark()
   lisp_mark_object(THE_SECD.e);
   lisp_mark_object(THE_SECD.c);
   lisp_mark_object(THE_SECD.d);
+}
+
+void lisp_update_any(any* slot)
+{
+  if (is_ref(*slot) && *slot != LISP_NIL)
+    *slot = *lisp_obj_at(deref(*slot), 0);
+}
+
+void lisp_update_roots()
+{
+  lisp_update_any(&LISP_SYMBOL_TABLE);
+  lisp_update_any(&THE_SECD.s);
+  lisp_update_any(&THE_SECD.e);
+  lisp_update_any(&THE_SECD.c);
+  lisp_update_any(&THE_SECD.d);
 }
 
 void lisp_sweep()
@@ -121,18 +141,28 @@ void lisp_sweep()
         {
           for (i = 0; i < obj->header.word_size; i++)
             {
-              any* slot = lisp_obj_at(obj, i);
-              if (is_ref(*slot) && *slot != LISP_NIL)
-                  *slot = *lisp_obj_at(deref(*slot), 0);
+              lisp_update_any(lisp_obj_at(obj, i));
             }
         }
     }
+  lisp_update_roots();
 }
 
 void lisp_gc()
 {
   lisp_mark();
   lisp_sweep();
+}
+
+#include <unistd.h>
+void lisp_opt_gc()
+{
+  if ((LISP_HEAP_SIZE - LISP_HEAPS[LISP_CURRENT_HEAP].alloc) < LISP_HEAP_SIZE / 4)
+    {
+      printf("Triggering GC!\n");
+      sleep(1);
+      lisp_gc();
+    }
 }
 
 any lisp_cons(any car, any cdr)

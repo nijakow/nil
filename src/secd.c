@@ -175,6 +175,7 @@ void secd_run(struct secd* secd)
 
   while (1)
     {
+      lisp_opt_gc(); /* TODO: Only call this periodically */
       instruction = secd_c(secd);
       switch (intval(instruction))
         {
