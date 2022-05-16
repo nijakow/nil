@@ -159,6 +159,30 @@ void secd_blt(struct secd* secd)
       x = secd_pop(secd);
       secd_push(secd, (x == y) ? intref(1) : LISP_NIL); /* TODO: Return T */
       break;
+    case 2: /* ADD */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, intref(intval(x) + intval(y)));
+      break;
+    case 3: /* LESS */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, (intval(x) < intval(y)) ? intref(1) : LISP_NIL); /* TODO: Return T */
+      break;
+    case 4: /* PUTCHAR */
+      assert(args == 1);
+      x = secd_pop(secd);
+      putchar(intval(x));
+      secd_push(secd, x);
+      break;
+    case 5: /* SUB */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, intref(intval(x) - intval(y)));
+      break;
     default:
       /* TODO: Error */
       break;
@@ -220,9 +244,9 @@ void secd_run(struct secd* secd)
           break;
         case IT_RET:
           printf("RET\n");
-          if (secd->d == LISP_NIL)
-            return;
           secd_ret(secd);
+          if (secd->c == LISP_NIL)
+            return;
           break;
         case IT_POP:
           printf("POP\n");

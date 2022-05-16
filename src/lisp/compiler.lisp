@@ -124,6 +124,12 @@
                   (xc/compile (list 'function (car expr)) env tail))))
         (t (xc/write-ldc expr tail))))
 
+(setq *print-circle* t)
+
 (defun comp (expr)
   (xc/compile expr '() (xc/write-ret)))
+
+(pprint (comp (read)))
+(terpri)
+(exit)
 
