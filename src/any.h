@@ -22,7 +22,7 @@ typedef uintptr_t any;
 
 static inline bool is_ref(any v)
 {
-  return (v & 0x07) == 0;
+  return (v != 0) && (v & 0x07) == 0;
 }
 
 static inline struct lisp_obj* deref(any v)

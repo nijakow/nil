@@ -105,7 +105,6 @@ void secd_setq(struct secd* secd, any pos, any val)
   lisp_rplaca(p, val);
 }
 
-
 void secd_ap(struct secd* secd)
 {
   any func;
@@ -128,9 +127,12 @@ void secd_ret(struct secd* secd)
 {
   any v;
 
-  v = secd_pop(secd);
-  secd_restore(secd);
-  secd_push(secd, v);
+  if (secd->d != LISP_NIL)
+    {
+      v = secd_pop(secd);
+      secd_restore(secd);
+      secd_push(secd, v);
+    }
 }
 
 void secd_blt(struct secd* secd)
@@ -175,6 +177,7 @@ void secd_blt(struct secd* secd)
       assert(args == 1);
       x = secd_pop(secd);
       putchar(intval(x));
+      fflush(stdout);
       secd_push(secd, x);
       break;
     case 5: /* SUB */
@@ -225,6 +228,22 @@ void secd_blt(struct secd* secd)
     }
 }
 
+const char* INSTRUCTIONS[] = {
+  "IT_NIL",
+  "IT_LDC",
+  "IT_LD",
+  "IT_ST",
+  "IT_SEL",
+  "IT_JOIN",
+  "IT_LDF",
+  "IT_AP",
+  "IT_RET",
+  "IT_POP",
+  "IT_LDS",
+  "IT_STS",
+  "IT_BLT"
+};
+
 void secd_run(struct secd* secd)
 {
   any instruction;
@@ -237,6 +256,7 @@ void secd_run(struct secd* secd)
     {
       lisp_opt_gc(); /* TODO: Only call this periodically */
       instruction = secd_c(secd);
+      // printf("%s\n", INSTRUCTIONS[intval(instruction)]);
       switch (intval(instruction))
         {
         case IT_NIL:
@@ -255,7 +275,6 @@ void secd_run(struct secd* secd)
           x = secd_c(secd);
           y = secd_c(secd);
           z = secd_pop(secd);
-          secd_pushd(secd, secd->c);
           if (z == LISP_NIL)
             secd->c = y;
           else

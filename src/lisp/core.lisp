@@ -1,4 +1,5 @@
 (progn
+  (setq t 't)
 
   (defun car (c)
     (asm (ld 0 0)
@@ -30,6 +31,9 @@
 
   (defun null (e)
     (eq e '()))
+
+  (defun not (e)
+    (if e nil t))
 
   (defun numberp (e)
     (asm (ld 0 0)
@@ -99,13 +103,26 @@
         (progn (putchar c)
                ($print-string s (+ i 1))))))
 
+  (defun $print-list (e)
+    (prin1 (car e))
+    (cond ((consp (cdr e))
+           (putchar 32)
+           ($print-list (cdr e)))
+          ((not (null (cdr e)))
+           (putchar 32)
+           (putchar 46)
+           (putchar 32)
+           (prin1 (cdr e)))))
+
   (defun prin1 (e)
     (cond ((symbolp e) ($print-string (symbol-name e) 0))
           ((null e)
            (putchar 40)
            (putchar 41))
-          ('t (putchar 63))))
+          ((consp e)
+           (putchar 40)
+           ($print-list e)
+           (putchar 41))
+          (t (putchar 63))))
 
-  (prin1 'hello-world)
-  )
-
+  (prin1 '(a (b c) d e . f)))
