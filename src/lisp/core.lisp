@@ -77,6 +77,21 @@
          (ld 0 1)
          (blt 5 2)))
 
+  (defun * (a b)
+    (asm (ld 0 0)
+         (ld 0 1)
+         (blt 12 2)))
+
+  (defun / (a b)
+    (asm (ld 0 0)
+         (ld 0 1)
+         (blt 13 2)))
+
+  (defun mod (a b)
+    (asm (ld 0 0)
+         (ld 0 1)
+         (blt 14 2)))
+
   (defun $load-slot (obj off)
     (asm (ld 0 0)
          (ld 0 1)
@@ -103,6 +118,16 @@
         (progn (putchar c)
                ($print-string s (+ i 1))))))
 
+  (defun $print-number-loop (n)
+    (cond ((= n 0) nil)
+          (t ($print-number-loop (/ n 10))
+             (putchar (+ 48 (mod n 10))))))
+
+  (defun $print-number (n)
+    (cond ((< n 0) (putchar 45) ($print-number (- 0 n)))
+          ((= n 0) (putchar 48))
+          (t ($print-number-loop n))))
+
   (defun $print-list (e)
     (prin1 (car e))
     (cond ((consp (cdr e))
@@ -123,6 +148,8 @@
            (putchar 40)
            ($print-list e)
            (putchar 41))
+          ((numberp e)
+           ($print-number e))
           (t (putchar 63))))
 
-  (prin1 '(a (b c) d e . f)))
+  (prin1 '(a (42 c) d e . f)))

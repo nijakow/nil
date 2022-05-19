@@ -221,6 +221,24 @@ void secd_blt(struct secd* secd)
       *lisp_obj_at(deref(x), intval(y)) = z;
       secd_push(secd, x);
       break;
+    case 12: /* MUL */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, intref(intval(x) * intval(y)));
+      break;
+    case 13: /* DIV */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, intref(intval(x) / intval(y)));
+      break;
+    case 14: /* MOD */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, intref(intval(x) % intval(y)));
+      break;
     default:
       /* TODO: Error */
       assert(0);
