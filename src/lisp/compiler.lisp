@@ -6,7 +6,7 @@
 (defun xc/write-ldc (e tail) (cons 1 (cons e tail)))
 (defun xc/write-ld (x tail) (cons 2 (cons x tail)))
 (defun xc/write-st (x tail) (cons 3 (cons x tail)))
-(defun xc/write-sel (tail tail1 tail2) (cons 4 (cons tail1 (cons tail2 tail))))
+(defun xc/write-sel (tail1 tail2) (cons 4 (cons tail1 (cons tail2 nil))))
 (defun xc/write-join (tail) (cons 5 (cons tail nil)))
 (defun xc/write-ldf (f tail) (cons 6 (cons f tail)))
 (defun xc/write-ap (a tail) (cons 7 (cons a tail)))
@@ -67,7 +67,7 @@
                    ((eq opcode 'ldc) (xc/write-ldc (car args) tail))
                    ((eq opcode 'ld) (xc/write-ld (cons (car args) (cadr args)) tail))
                    ((eq opcode 'sel)
-                    (let ((r (xc/write-sel tail '? '?)))
+                    (let ((r (xc/write-sel '? '?)))
                       (xc/get-entry db (car args) (lambda (v) (rplaca (cdr r) v)))
                       (xc/get-entry db (cadr args) (lambda (v) (rplaca (cddr r) v)))
                       r))
@@ -123,8 +123,7 @@
                ((eq (car expr) 'if)
                 (xc/compile (cadr expr)
                             env
-                            (xc/write-sel tail
-                                          (xc/compile (caddr expr) env (xc/write-join tail))
+                            (xc/write-sel (xc/compile (caddr expr) env (xc/write-join tail))
                                           (if (cdddr expr)
                                               (xc/compile (cadddr expr) env (xc/write-join tail))
                                             (xc/write-nil (xc/write-join tail))))))
