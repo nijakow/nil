@@ -183,8 +183,44 @@ void secd_blt(struct secd* secd)
       x = secd_pop(secd);
       secd_push(secd, intref(intval(x) - intval(y)));
       break;
+    case 6: /* BYTE-INDEX */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, intref(*lisp_obj_char_at(deref(x), intval(y))));
+      break;
+    case 7: /* NUMBERP */
+      assert(args == 1);
+      x = secd_pop(secd);
+      secd_push(secd, (is_ref(x)) ? LISP_NIL : intref(1)); /* TODO: Return T */
+      break;
+    case 8: /* CONSP */
+      assert(args == 1);
+      x = secd_pop(secd);
+      secd_push(secd, (is_ref(x) && lisp_obj_is(deref(x), TYPE_CONS)) ? intref(1) : LISP_NIL); /* TODO: Return T */
+      break;
+    case 9: /* SYMBOLP */
+      assert(args == 1);
+      x = secd_pop(secd);
+      secd_push(secd, (is_ref(x) && lisp_obj_is(deref(x), TYPE_SYMBOL)) ? intref(1) : LISP_NIL); /* TODO: Return T */
+      break;
+    case 10: /* SLOT-INDEX */
+      assert(args == 2);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      secd_push(secd, *lisp_obj_at(deref(x), intval(y)));
+      break;
+    case 11: /* SLOT-INDEX-PUT */
+      assert(args == 3);
+      z = secd_pop(secd);
+      y = secd_pop(secd);
+      x = secd_pop(secd);
+      *lisp_obj_at(deref(x), intval(y)) = z;
+      secd_push(secd, x);
+      break;
     default:
       /* TODO: Error */
+      assert(0);
       break;
     }
 }
@@ -204,23 +240,18 @@ void secd_run(struct secd* secd)
       switch (intval(instruction))
         {
         case IT_NIL:
-          printf("NIL\n");
           secd_push(secd, LISP_NIL);
           break;
         case IT_LDC:
-          printf("LDC\n");
           secd_push(secd, secd_c(secd));
           break;
         case IT_LD:
-          printf("LD\n");
           secd_push(secd, secd_lookup(secd, secd_c(secd)));
           break;
         case IT_ST:
-          printf("ST\n");
           secd_setq(secd, secd_c(secd), secd_pop(secd));
           break;
         case IT_SEL:
-          printf("SEL\n");
           x = secd_c(secd);
           y = secd_c(secd);
           z = secd_pop(secd);
@@ -231,37 +262,32 @@ void secd_run(struct secd* secd)
             secd->c = x;
           break;
         case IT_JOIN:
-          printf("JOIN\n");
           secd->c = secd_c(secd);
           break;
         case IT_LDF:
-          printf("LDF\n");
           secd_push(secd, lisp_cons(secd_c(secd), secd->e));
           break;
         case IT_AP:
-          printf("AP\n");
           secd_ap(secd);
           break;
         case IT_RET:
-          printf("RET\n");
           secd_ret(secd);
           if (secd->c == LISP_NIL)
             return;
           break;
         case IT_POP:
-          printf("POP\n");
           secd_pop(secd);
           break;
         case IT_LDS:
-          printf("LDS\n");
           i = intval(secd_c(secd));
           x = secd_pop(secd);
           if (is_ref(x))
             x = *lisp_obj_at(deref(x), i);
+          else
+            assert(0);
           secd_push(secd, x);
           break;
         case IT_STS:
-          printf("STS\n");
           i = intval(secd_c(secd));
           y = secd_pop(secd);
           x = secd_pop(secd);
@@ -270,11 +296,10 @@ void secd_run(struct secd* secd)
           secd_push(secd, x);
           break;
         case IT_BLT:
-          printf("BLT\n");
           secd_blt(secd);
           break;
         default:
-          printf("???\n");
+          assert(0);
           break;
         }
     }

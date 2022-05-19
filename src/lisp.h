@@ -8,8 +8,9 @@ struct lisp_obj
   struct
   {
     unsigned int mark : 2;
+    unsigned int type : 3;
     unsigned int bytes : 1;
-    unsigned int word_size : 29;
+    unsigned int word_size : 26;
   } header;
 };
 
@@ -28,8 +29,13 @@ static inline char* lisp_obj_char_at(struct lisp_obj* obj, unsigned int index)
   return &((char*) lisp_obj_payload(obj))[index];
 }
 
+static inline bool lisp_obj_is(struct lisp_obj* obj, enum lisp_type type)
+{
+  return obj->header.type == type;
+}
 
-any lisp_alloc(unsigned int);
+
+any lisp_alloc(enum lisp_type, unsigned int);
 void lisp_mark_object(any);
 void lisp_gc();
 void lisp_opt_gc();

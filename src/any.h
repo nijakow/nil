@@ -9,6 +9,7 @@ enum lisp_type
     TYPE_CONS,
     TYPE_SYMBOL,
     TYPE_VECTOR,
+    TYPE_STRING,
     TYPE_INT,
     TYPE_CFUNC
   };

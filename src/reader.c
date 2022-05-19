@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <ctype.h>
+#include <string.h>
 #include <stdio.h>
 
 #include "reader.h"
@@ -118,6 +119,8 @@ any lisp_reader_read_symbol(struct reader* reader)
       forward(reader);
     }
   buffer[fill++] = '\0';
+  if (strcmp(buffer, "nil") == 0 || strcmp(buffer, "NIL") == 0)
+    return LISP_NIL;
   return lisp_getsym(buffer);
 }
 

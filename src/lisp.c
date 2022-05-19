@@ -33,17 +33,19 @@ static inline void* lisp_heap_alloc_bytes(struct lisp_heap* heap, unsigned long 
   if ((size & 0x07) != 0)
     size = (size & ~((unsigned long) 0x07)) + 0x08;
   heap->alloc += size;
+  /*
   printf("Alloc is %lu bytes, before %p, now %p, %lu bytes in use\n",
          size,
          ptr,
          &heap->data[heap->alloc],
          heap->alloc);
+  */
   return ptr;
 }
 
 
 
-any lisp_alloc(unsigned int size)
+any lisp_alloc(enum lisp_type type, unsigned int size)
 {
   struct lisp_obj* obj;
   unsigned int bsize;
@@ -53,6 +55,7 @@ any lisp_alloc(unsigned int size)
   if (obj != NULL)
     {
       obj->header.mark = 0;
+      obj->header.type = type;
       obj->header.bytes = 0;
       bsize = size - sizeof(struct lisp_obj);
       obj->header.word_size = (bsize / sizeof(any)) + (((bsize % sizeof(any)) == 0) ? 0 : 1);
@@ -169,7 +172,7 @@ any lisp_cons(any car, any cdr)
 {
   any cell;
 
-  cell = lisp_alloc(sizeof(struct lisp_obj) + sizeof(any) * 2);
+  cell = lisp_alloc(TYPE_CONS, sizeof(struct lisp_obj) + sizeof(any) * 2);
   lisp_rplaca(cell, car);
   lisp_rplacd(cell, cdr);
 
@@ -184,7 +187,7 @@ any lisp_getstr(const char* text)
   size_t x;
 
   len = strlen(text);
-  name = lisp_alloc(sizeof(struct lisp_obj) + (len + 1) * sizeof(char));
+  name = lisp_alloc(TYPE_STRING, sizeof(struct lisp_obj) + (len + 1) * sizeof(char));
   ((struct lisp_obj*) deref(name))->header.bytes = 1;
   for (x = 0; x <= len; x++)
     *lisp_obj_char_at(deref(name), x) = text[x];
@@ -213,7 +216,7 @@ any lisp_getsym(const char* text)
         }
     }
   name = lisp_getstr(text);
-  sym = lisp_alloc(sizeof(struct lisp_obj) + 5 * sizeof(any));
+  sym = lisp_alloc(TYPE_SYMBOL, sizeof(struct lisp_obj) + 5 * sizeof(any));
   *lisp_obj_at(deref(sym), 0) = LISP_SYMBOL_TABLE;
   *lisp_obj_at(deref(sym), 1) = name;
   *lisp_obj_at(deref(sym), 2) = sym;
