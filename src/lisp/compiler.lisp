@@ -83,13 +83,31 @@
                    ((eq opcode 'lds) (xc/write-lds (car args) tail))
                    ((eq opcode 'sts) (xc/write-sts (car args) tail))
                    ((eq opcode 'blt) (xc/write-blt (car args) (cadr args) tail))
-                   ((eq opcode 'lisp) (xc/compile (cons 'progn args) env tail))
+                   ((eq opcode 'lisp) (xc/compile (cons 'progn args) env db tail))
                    (t (error "Unknown opcode!")))))))
 
-(defun xc/asm (code env tail)
+(defun xc/asm (code env db tail)
   (xc/asm-main code (xc/make-jump-db) env tail))
 
-(defun xc/compile (expr env tail)
+(defun xc/compile-tagbody-main (body env db tail)
+  (cond ((null body) (cons tail t))
+        ((symbolp (car body))
+         (let ((r (xc/compile-tagbody-main (cdr body) env db tail)))
+           (xc/set-entry db (car body) (car r))
+           r))
+        (t (let ((r (xc/compile-tagbody-main (cdr body) env db tail)))
+             (cons (xc/compile (car body)
+                               env
+                               db
+                               (if (cdr r)
+                                   (car r)
+                                 (xc/write-pop (car r))))
+                   nil)))))
+
+(defun xc/compile-tagbody (body env db tail)
+  (car (xc/compile-tagbody-main body env db tail)))
+
+(defun xc/compile (expr env db tail)
   (cond ((eq expr nil)
          (xc/write-nil tail))
         ((symbolp expr)
@@ -103,29 +121,32 @@
                ((eq (car expr) 'function)
                 (if (symbolp (cadr expr))
                     (xc/write-ldgf (cadr expr) tail)
-                  (xc/compile (cadr expr) env tail)))
+                  (xc/compile (cadr expr) env db tail)))
                ((eq (car expr) 'setq)
                 (let ((v (xc/lookup (cadr expr) env 0)))
                   (if v
                       (xc/compile (caddr expr)
                                   env
+                                  db
                                   (xc/write-st v tail))
                     (xc/write-ldc (cadr expr)
                                   (xc/compile (caddr expr)
                                               env
+                                              db
                                               (xc/write-stg tail))))))
                ((eq (car expr) 'progn)
                 (let ((rev (reverse (cdr expr))))
-                  (setq tail (xc/compile (car rev) env tail))
+                  (setq tail (xc/compile (car rev) env db tail))
                   (loop for e in (cdr rev) do
-                        (setq tail (xc/compile e env (xc/write-pop tail))))
+                        (setq tail (xc/compile e env db (xc/write-pop tail))))
                   tail))
                ((eq (car expr) 'if)
                 (xc/compile (cadr expr)
                             env
-                            (xc/write-sel (xc/compile (caddr expr) env (xc/write-join tail))
+                            db
+                            (xc/write-sel (xc/compile (caddr expr) env db (xc/write-join tail))
                                           (if (cdddr expr)
-                                              (xc/compile (cadddr expr) env (xc/write-join tail))
+                                              (xc/compile (cadddr expr) env db (xc/write-join tail))
                                             (xc/write-nil (xc/write-join tail))))))
                ((eq (car expr) 'cond)
                 (if (null (cdr expr))
@@ -135,31 +156,40 @@
                                     (cons 'progn (cdadr expr))
                                     (cons 'cond (cddr expr)))
                               env
+                              db
                               tail)))
+               ((eq (car expr) 'go)
+                (let ((r (xc/write-join '?)))
+                  (xc/get-entry db (cadr expr) (lambda (v) (rplaca (cdr r) v)))
+                  r))
+               ((eq (car expr) 'tagbody)
+                (xc/compile-tagbody (cdr expr) env db tail))
                ((eq (car expr) 'lambda)
-                (xc/write-ldf (xc/compile (cons 'progn (cddr expr)) (cons (cadr expr) env) (xc/write-ret)) tail))
+                (xc/write-ldf (xc/compile (cons 'progn (cddr expr)) (cons (cadr expr) env) (xc/make-jump-db) (xc/write-ret)) tail))
                ((eq (car expr) 'defun)
                 (xc/write-ldc (cadr expr)
                               (xc/compile (cons 'lambda (cddr expr))
                                           env
+                                          db
                                           (xc/write-stgf tail))))
                ((eq (car expr) 'let)
                 (xc/compile (cons (cons 'lambda (cons (mapcar #'car (cadr expr)) (cddr expr)))
                                   (mapcar (lambda (e) (cons 'progn (cdr e))) (cadr expr)))
                             env
+                            db
                             tail))
                ((eq (car expr) 'asm)
-                (xc/asm (cdr expr) env tail))
+                (xc/asm (cdr expr) env db tail))
                (t (setq tail (xc/write-ap (length (cdr expr)) tail))
                   (loop for e in (reverse (cdr expr)) do
-                        (setq tail (xc/compile e env tail)))
-                  (xc/compile (list 'function (car expr)) env tail))))
+                        (setq tail (xc/compile e env db tail)))
+                  (xc/compile (list 'function (car expr)) env db tail))))
         (t (xc/write-ldc expr tail))))
 
 (setq *print-circle* t)
 
 (defun comp (expr)
-  (xc/compile expr '() (xc/write-ret)))
+  (xc/compile expr '() (xc/make-jump-db) (xc/write-ret)))
 
 (pprint (comp (read)))
 (terpri)
