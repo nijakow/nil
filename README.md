@@ -14,5 +14,5 @@ In order to build and run Nil, you need the following programs:
 
 Compile the executable by running `cd src/ && make`. This should produce `nil.app`, which you can run by typing `./nil.app` within the `src/` directory. Once you start Nil, the program expects input. No prompt is printed.
 
-In another window, type `cd src/lisp/`, then `./compile.sh`, and copy-paste the resulting SECD program into the running Nil instance. Nil will then automatically start execution of the compiled program.
+In another window, type `cd src/lisp/`, then `./compile.sh`, and copy-paste the resulting SECD program into the running Nil instance. Nil will then automatically start execution of the compiled program and print `(A (42 C) D E . F)` to the screen.
 
