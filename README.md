@@ -16,3 +16,9 @@ Compile the executable by running `cd src/ && make`. This should produce `nil.ap
 
 In another window, type `cd src/lisp/`, then `./compile.sh`, and copy-paste the resulting SECD program into the running Nil instance. Nil will then automatically start execution of the compiled program and print `(A (42 C) D E . F)` to the screen.
 
+## Further reading
+
+ - [Devine Lu Linvega's post about SECD machines](https://wiki.xxiivv.com/site/secd)
+ - [https://github.com/Apress/interpreting-lisp/tree/master](Interpreting Lisp by Gary D. Knott)
+ - [https://github.com/kanaka/mal](Make-a-Lisp by Kanaka)
+
