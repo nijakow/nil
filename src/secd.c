@@ -6,19 +6,19 @@
 
 enum instruction_type
   {
-    IT_NIL,
-    IT_LDC,
-    IT_LD,
-    IT_ST,
-    IT_SEL,
-    IT_JOIN,
-    IT_LDF,
-    IT_AP,
-    IT_RET,
-    IT_POP,
-    IT_LDS,
-    IT_STS,
-    IT_BLT
+    IT_NIL,  /* Load NIL                     */
+    IT_LDC,  /* Load Constant                */
+    IT_LD,   /* Load Variable                */
+    IT_ST,   /* Store Variable               */
+    IT_SEL,  /* Select Branch (if statement) */
+    IT_JOIN, /* Join Branches                */
+    IT_LDF,  /* Load Function                */
+    IT_AP,   /* Apply Function               */
+    IT_RET,  /* Return from Function         */
+    IT_POP,  /* Pop Value                    */
+    IT_LDS,  /* Load Slot                    */
+    IT_STS,  /* Store Slot                   */
+    IT_BLT   /* Call Builtin                 */
   };
 
 static inline any secd_c(struct secd* secd)
