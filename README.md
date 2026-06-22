@@ -1,6 +1,6 @@
 # Nil
 
-Nil is a tiny SECD-style Lisp executor.
+Nil is a tiny [SECD](https://en.wikipedia.org/wiki/SECD_machine)-style Lisp implementation.
 
 I wrote it to demonstrate that a minimal bootstrappable Lisp implementation could be written in a few hundred lines of code. In fact, the entire engine fits in less than 1000 lines of C.
 
