@@ -19,6 +19,6 @@ In another window, type `cd src/lisp/`, then `./compile.sh`, and copy-paste the 
 ## Further reading
 
  - [Devine Lu Linvega's post about SECD machines](https://wiki.xxiivv.com/site/secd)
- - [https://github.com/Apress/interpreting-lisp/tree/master](Interpreting Lisp by Gary D. Knott)
- - [https://github.com/kanaka/mal](Make-a-Lisp by Kanaka)
+ - [Interpreting Lisp by Gary D. Knott](https://github.com/Apress/interpreting-lisp/tree/master)
+ - [Make-a-Lisp by Kanaka](https://github.com/kanaka/mal)
 
